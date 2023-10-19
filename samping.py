@@ -20,6 +20,8 @@ def find_angle(x1, y1, x2, y2):
 def send_warning():
     print('POSTUR BURUK')
 
+def print_num(num):
+    print(num)
 
 good_frames = 0
 bad_frames = 0
@@ -38,30 +40,34 @@ pink = (255, 0, 255)
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 
-cap = cv2.VideoCapture(0)
-fps = int(cap.get(cv2.CAP_PROP_FPS))
-width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-frame_size = (width, height)
-# fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+class VideoCamera(object):
+    def __init__(self):
+        self.cap = cv2.VideoCapture(0)
+        self.good_frames = 0
+        self.bad_frames = 0
 
-# video_output = cv2.VideoWriter('output.mp4', fourcc, fps, frame_size)
+    def __del__(self):
+        self.cap.release()
 
-while cap.isOpened():
-    success, img = cap.read()
-    if not success:
-        print('ignoring empty frames')
+    def get_frame(self):
+        success, img = self.cap.read()
 
-    h, w = img.shape[:2]
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    key_points = pose.process(img)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        fps = int(self.cap.get(cv2.CAP_PROP_FPS))
+        width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        frame_size = (width, height)
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-    lm = key_points.pose_landmarks
-    lm_pose = mp_pose.PoseLandmark
+        # video_output = cv2.VideoWriter('output.mp4', fourcc, fps, frame_size)
 
-    if lm != None:
+        h, w = img.shape[:2]
+        fps = self.cap.get(cv2.CAP_PROP_FPS)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        key_points = pose.process(img)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        lm = key_points.pose_landmarks
+        lm_pose = mp_pose.PoseLandmark
 
         l_shoulder_x = int(lm.landmark[lm_pose.LEFT_SHOULDER].x * w)
         l_shoulder_y = int(lm.landmark[lm_pose.LEFT_SHOULDER].y * h)
@@ -83,7 +89,7 @@ while cap.isOpened():
             cv2.putText(img, str(int(offset)) + 'Hadap samping dan tegap', (w - 150, 30), font, 0.9, red, 2)
 
         neck_inclination = find_angle(l_shoulder_x, l_shoulder_y, l_ear_x, l_ear_y)
-        torso_inclination = find_angle(l_hip_x, l_hip_y, l_shoulder_x, l_shoulder_y)
+        # torso_inclination = find_angle(l_hip_x, l_hip_y, l_shoulder_x, l_shoulder_y)
 
         cv2.circle(img, (l_shoulder_x, l_shoulder_y), 7, yellow, -1)
         cv2.circle(img, (l_ear_x, l_ear_y), 7, yellow, -1)
@@ -100,15 +106,15 @@ while cap.isOpened():
 
         # Put text, Posture and angle inclination.
         # Text string for display.
-        angle_text_string = 'Leher : ' + str(int(neck_inclination)) + '  Batang Tubuh : ' + str(int(torso_inclination))
+        angle_text_string = 'Leher : ' + str(int(neck_inclination)) 
 
-        if neck_inclination < 20 and torso_inclination < 20:
+        if neck_inclination < 20:
             # bad_frames = 0
-            good_frames += 1
+            self.good_frames += 1
 
             cv2.putText(img, angle_text_string, (10, 30), font, 0.9, light_green, 2)
             cv2.putText(img, str(int(neck_inclination)), (l_shoulder_x + 10, l_shoulder_y), font, 0.9, light_green, 2)
-            cv2.putText(img, str(int(torso_inclination)), (l_hip_x + 10, l_hip_y), font, 0.9, light_green, 2)
+            # cv2.putText(img, str(int(torso_inclination)), (l_hip_x + 10, l_hip_y), font, 0.9, light_green, 2)
 
             cv2.line(img, (l_shoulder_x, l_shoulder_y), (l_ear_x, l_ear_y), green, 4)
             cv2.line(img, (l_shoulder_x, l_shoulder_y), (l_shoulder_x, l_shoulder_y - 100), green, 4)
@@ -116,11 +122,11 @@ while cap.isOpened():
             cv2.line(img, (l_hip_x, l_hip_y), (l_hip_x, l_hip_y - 100), green, 4)
         else:
             # good_frames = 0
-            bad_frames += 1
+            self.bad_frames += 1
 
             cv2.putText(img, angle_text_string, (10, 30), font, 0.9, red, 2)
             cv2.putText(img, str(int(neck_inclination)), (l_shoulder_x + 10, l_shoulder_y), font, 0.9, red, 2)
-            cv2.putText(img, str(int(torso_inclination)), (l_hip_x + 10, l_hip_y), font, 0.9, red, 2)
+            # cv2.putText(img, str(int(torso_inclination)), (l_hip_x + 10, l_hip_y), font, 0.9, red, 2)
 
             # Join landmarks.
             cv2.line(img, (l_shoulder_x, l_shoulder_y), (l_ear_x, l_ear_y), red, 4)
@@ -129,8 +135,8 @@ while cap.isOpened():
             cv2.line(img, (l_hip_x, l_hip_y), (l_hip_x, l_hip_y - 100), red, 4)
 
         # Calculate the time of remaining in a particular posture.
-        good_time = (1 / fps) * good_frames
-        bad_time = (1 / fps) * bad_frames
+        good_time = (1 / fps) * self.good_frames
+        bad_time = (1 / fps) * self.bad_frames
 
         total_time = good_time + bad_time
 
@@ -161,14 +167,17 @@ while cap.isOpened():
         # If you stay in bad posture for more than 3 minutes (180s) send an alert.
         if correct_percent < 50:
             send_warning()
-            r = requests.get('https://ergoside.com/laporan?status=bahaya')
+            r = requests.get('https://ergoment.com/laporan?status=bahaya')
             print("berhasil status bahaya")
         else:
-            r = requests.get('https://ergoside.com/laporan?status=aman')
+            r = requests.get('https://ergoment.com/laporan?status=aman')
             print("berhasil status aman")
 
-    cv2.imshow('img', img)
-    if cv2.waitKey(5) & 0XFF == 27:
-        break
-cap.release()
-cv2.destroyAllWindows()
+        ret, jpeg = cv2.imencode('.jpg', img)
+        return [jpeg.tobytes(),good_time, bad_time]
+
+#     cv2.imshow('img', img)
+#     if cv2.waitKey(5) & 0XFF == 27:
+#         break
+# cap.release()
+# cv2.destroyAllWindows()
