@@ -167,10 +167,10 @@ class VideoCamera(object):
         # If you stay in bad posture for more than 3 minutes (180s) send an alert.
         if correct_percent < 50:
             send_warning()
-            r = requests.get('https://ergoment.com/laporan?status=bahaya')
+            r = requests.get('https://ergoment.com/samping?status=bahaya')
             print("berhasil status bahaya")
         else:
-            r = requests.get('https://ergoment.com/laporan?status=aman')
+            r = requests.get('https://ergoment.com/samping?status=aman')
             print("berhasil status aman")
 
         ret, jpeg = cv2.imencode('.jpg', img)
